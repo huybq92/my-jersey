@@ -20,6 +20,7 @@ public class UserResource {
     @Path("{username}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getUser(@PathParam("username") String username) {
+        int responseCode = 202; //accepted
         EntityManagerFactory emfactory = Persistence.createEntityManagerFactory("yelpcamp");
         EntityManager em = emfactory.createEntityManager();
         String jsonData = "";
@@ -30,19 +31,27 @@ public class UserResource {
             //# Convert to String
             if (user != null) {
                 jsonData = new Gson().toJson(user, UserEntity.class); //serialization
+            } else {
+                responseCode = 404; //not found
+            }
+            if (!jsonData.equals("")) {
+                responseCode = 200; //succeeded
             }
         } catch (Exception ex) {
-            jsonData = "";
+            responseCode = 500;
         } finally {
-            em.close();
-            emfactory.close();
-            if (jsonData.equals("")) {
-                return Response.serverError().build();
+            try {
+                em.close();
+                emfactory.close();
+            } finally {
+                if (responseCode != 200) {
+                    return Response.status(responseCode).build();
+                }
+                return Response.ok()
+                        .entity(jsonData)
+                        .type(MediaType.APPLICATION_JSON_TYPE)
+                        .build();
             }
-            return Response.ok() //code 200
-                    .entity(jsonData)
-                    .type(MediaType.APPLICATION_JSON_TYPE)
-                    .build();
         }
     }
 }

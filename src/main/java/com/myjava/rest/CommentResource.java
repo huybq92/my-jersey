@@ -24,41 +24,51 @@ public class CommentResource {
     @Path("{camp_id}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getAllComments(@PathParam("camp_id") String camp_id) {
-        EntityManagerFactory emfactory = Persistence.createEntityManagerFactory( "yelpcamp" );
+        int responseCode = 202; //accepted
+        EntityManagerFactory emfactory = Persistence.createEntityManagerFactory("yelpcamp");
         EntityManager em = emfactory.createEntityManager();
         List<CommentEntity> allComments;
         String jsonData = "";
         try {
-            String hqlString = "FROM CommentEntity c WHERE campgroundCampId = :id";
-            Query sqlQuery = em.createQuery("FROM CommentEntity c WHERE c.campgroundCampId=?");
+            Query sqlQuery = em.createQuery("FROM CommentEntity c WHERE c.campgroundCampId=?1");
             sqlQuery.setParameter(1, Integer.parseInt(camp_id));
             allComments = (List<CommentEntity>) sqlQuery.getResultList();
             //# Convert to Json
             if (allComments != null) {
-                jsonData = new Gson().toJson(allComments, new TypeToken<List<CommentEntity>>() {}.getType());
+                jsonData = new Gson().toJson(allComments, new TypeToken<List<CommentEntity>>() {
+                }.getType());
+            } else {
+                responseCode = 404; //not found
+            }
+            if (!jsonData.equals("")) {
+                responseCode = 200; //succeeded
             }
         } catch (Exception ex) {
-            jsonData ="";
+            responseCode = 500;
         } finally {
-            em.close();
-            emfactory.close();
-            if (jsonData.equals("")) {
-                return Response.serverError().build(); //code 500
+            try {
+                em.close();
+                emfactory.close();
+            } finally {
+                if (responseCode != 200) {
+                    return Response.status(responseCode).build();
+                }
+                return Response.ok()
+                        .entity(jsonData)
+                        .type(MediaType.APPLICATION_JSON_TYPE)
+                        .build();
             }
-            return Response.ok() //code 200
-                    .entity(jsonData)
-                    .type(MediaType.APPLICATION_JSON_TYPE)
-                    .build();
         }
     }
 
     @POST
     @Path("{camp_id}")
     @Consumes(MediaType.APPLICATION_JSON)
-    @Transactional //# Method execution takes place inside a transaction => no need return data along with response => response code 204
+    @Transactional
+    //# Method execution takes place inside a transaction => no need return data along with response => response code 204
     public Response createComment(@PathParam("camp_id") String camp_id, InputStream incomingData) {
-        int responseCode = 500;
-        EntityManagerFactory emfactory = Persistence.createEntityManagerFactory( "yelpcamp" );
+        int responseCode = 202; //accepted
+        EntityManagerFactory emfactory = Persistence.createEntityManagerFactory("yelpcamp");
         EntityManager em = emfactory.createEntityManager();
         StringBuilder data = new StringBuilder(); //holds Json data from request
         try {
@@ -71,21 +81,32 @@ public class CommentResource {
             in.close();
             //# Convert to Persistence object
             CommentEntity newComment = new Gson().fromJson(data.toString(), CommentEntity.class); //deserialization needs Entity.class
-            //# Persist Persistence object to DB
-            em.getTransaction().begin();
-            em.persist(newComment);
-            em.getTransaction().commit();
+            if (newComment != null) {
+                //# Check if camp_id equals newComment.getCampgroundCampId
+                if (Integer.parseInt(camp_id) == newComment.getCampgroundCampId()) {
+                    //# Persist Persistence object to DB
+                    em.getTransaction().begin();
+                    em.persist(newComment);
+                    em.getTransaction().commit();
+                    responseCode = 201; //created
+                } else {
+                    responseCode = 400; //bad request: fake data from request
+                }
+            } else {
+                responseCode = 400; //bad request
+            }
         } catch (Exception ex) {
             if (em.getTransaction() != null) {
                 em.getTransaction().rollback(); //must rollback in case of error
             }
+            responseCode = 500; //server internal error
         } finally {
-            em.close();
-            emfactory.close();
-            if (responseCode == 500) {
-                return Response.serverError().build(); //code 500
+            try {
+                em.close();
+                emfactory.close();
+            } finally {
+                return Response.status(responseCode).build(); //should return 201 because the request is handled synchronously, not async
             }
-            return Response.status(201).build(); //should return 201 because the request is handled synchronously, not async
         }
     }
 }
