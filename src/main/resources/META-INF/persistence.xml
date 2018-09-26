@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd"
+             version="2.2">
+
+    <persistence-unit name="yelpcamp">
+        <description>PU for MySQL database of webapp Yelp Camp</description>
+
+        <!--Provider scans the root of persistence units and import all annotated persistence classes-->
+        <!--If META-INF contains orm.xml, then includes mapping info to PU-->
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+        <class>com.myjava.models.CampgroundEntity</class>
+        <class>com.myjava.models.CommentEntity</class>
+        <class>com.myjava.models.UserEntity</class>
+        <!--<jar-file>Import a whole package containing persistence classes</jar-file>-->
+
+        <!--2nd level cache for annotated class with @Cacheable-->
+        <shared-cache-mode>ENABLE_SELECTIVE</shared-cache-mode>
+
+        <!--By default, JPA integrates with the bean validation spec
+        => automatically validate the values of entity attributes before they get persisted or updated-->
+        <!--<validation-mode>CALLBACK</validation-mode>-->
+        <!--<properties>-->
+            <!--<property name="hibernate.connection.url" value="jdbc:mysql://localhost:3306/yelpcamp"/>-->
+            <!--<property name="hibernate.connection.driver_class" value="com.mysql.jdbc.Driver"/>-->
+            <!--<property name="hibernate.connection.username" value="admin"/>-->
+            <!--<property name="hibernate.connection.password" value="tr*baV4S"/>-->
+            <!--<property name="hibernate.archive.autodetection" value="class"/>-->
+            <!--<property name="hibernate.show_sql" value="true"/>-->
+            <!--<property name="hibernate.format_sql" value="true"/>-->
+            <!--<property name="hbm2ddl.auto" value="update"/>-->
+            <!--<property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"></property>-->
+        <!--</properties>-->
+        <properties>
+            <property name="javax.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver" />
+            <property name="javax.persistence.jdbc.url" value="jdbc:mysql://localhost:3306/yelpcamp" />
+            <property name="javax.persistence.jdbc.user" value="admin" />
+            <property name="javax.persistence.jdbc.password" value="tr*baV4S" />
+        </properties>
+    </persistence-unit>
+</persistence>
